@@ -655,6 +655,10 @@ Please feel free to contact us with any questions or to proceed with your order.
         logging.error(f"Error processing webhook: {e}", exc_info=True)
         return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
+@app.route("/", methods=["GET"])
+def index():
+    return "Webhook server is running."
+
 # Entry point for running the Flask application
 if __name__ == '__main__':
     logging.info("Starting Flask app. Listening for webhooks on /webhook.")
