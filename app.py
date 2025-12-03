@@ -28,10 +28,9 @@ generation_config = GenerationConfig(
 )
 
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
+    model_name="gemini-1.5-flash-002",
     generation_config=generation_config
 )
-
 # --- Microsoft Graph API Configuration for Draft Emails ---
 # You MUST register an application in Azure Active Directory to get these values.
 # Set these as environment variables (e.g., in your .env file):
