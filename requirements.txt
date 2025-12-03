@@ -1,5 +1,5 @@
 Flask==2.3.3
-google-generativeai>=1.52.0  # Or the version you have installed
+google‑generativeai==0.8.5  # Or the version you have installed
 python-dotenv==1.0.0      # Or the version you have installed
 requests==2.31.0          # Or the version you have installed
 gunicorn==21.2.0          # Essential for production web servers
