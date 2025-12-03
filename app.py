@@ -28,8 +28,8 @@ generation_config = GenerationConfig(
     max_output_tokens=512
 )
 # IMPORTANT: Using gemini-1.5-flash-latest as recommended for generateContent.
-model = GenerativeModel(
-    model_name="gemini-1.5",
+model = genai.GenerativeModel(
+    model_name="models/gemini-1.5-flash",
     api_key=GEMINI_API_KEY,  # pass API key here
     generation_config=generation_config
 )
