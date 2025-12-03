@@ -29,7 +29,7 @@ generation_config = {
     "max_output_tokens": 1024,
 }
 # IMPORTANT: Using gemini-1.5-flash-latest as recommended for generateContent.
-model = genai.GenerativeModel(model_name="gemini-1.5-flash-latest", generation_config=generation_config)
+model = genai.GenerativeModel(model_name="gemini-1.5-flash", generation_config=generation_config)
 
 # --- Microsoft Graph API Configuration for Draft Emails ---
 # You MUST register an application in Azure Active Directory to get these values.
