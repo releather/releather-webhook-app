@@ -1,24 +1,24 @@
 import os
 from flask import Flask, request, jsonify
-from google.generativeai import TextGenerationModel, GenerationConfig
+import google.generativeai as genai
+from google.generativeai import GenerationConfig
 import logging
 import re
 from dotenv import load_dotenv
-import requests # For making HTTP requests to Microsoft Graph API
+import requests  # Microsoft Graph API
 
-# Load environment variables from a .env file (if present)
+# Load env
 load_dotenv()
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
 
 # --- Configuration for Gemini API ---
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY_NOT_SET')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
-if not GEMINI_API_KEY or GEMINI_API_KEY == 'YOUR_GEMINI_API_KEY_NOT_SET':
-    logging.error("GEMINI_API_KEY environment variable not set. Please configure it in your .env file or as a system environment variable.")
-    # In a production environment, consider raising an exception here to prevent startup
-    # raise ValueError("GEMINI_API_KEY environment variable is not set!")
+if not GEMINI_API_KEY:
+    logging.error("GEMINI_API_KEY not set.")
+    # You may want: raise ValueError("Missing key")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -26,12 +26,12 @@ generation_config = GenerationConfig(
     temperature=0.7,
     max_output_tokens=512
 )
-# IMPORTANT: Using gemini-1.5-flash-latest as recommended for generateContent.
+
 model = genai.GenerativeModel(
-    model_name="models/gemini-1.5-flash",
-    api_key=GEMINI_API_KEY,  # pass API key here
+    model_name="gemini-1.5-flash",
     generation_config=generation_config
 )
+
 # --- Microsoft Graph API Configuration for Draft Emails ---
 # You MUST register an application in Azure Active Directory to get these values.
 # Set these as environment variables (e.g., in your .env file):
