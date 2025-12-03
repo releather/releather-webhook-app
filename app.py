@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request, jsonify
 from google import genai
+from google.genai import GenerativeModel, GenerationConfig
 import logging
 import re
 from dotenv import load_dotenv
@@ -22,15 +23,16 @@ if not GEMINI_API_KEY or GEMINI_API_KEY == 'YOUR_GEMINI_API_KEY_NOT_SET':
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-generation_config = {
-    "temperature": 0.7,
-    "top_p": 1,
-    "top_k": 1,
-    "max_output_tokens": 1024,
-}
+generation_config = GenerationConfig(
+    temperature=0.7,
+    max_output_tokens=512
+)
 # IMPORTANT: Using gemini-1.5-flash-latest as recommended for generateContent.
-model = genai.GenerativeModel(model_name="models/gemini-1.5-flash", generation_config=generation_config)
-
+model = GenerativeModel(
+    model_name="gemini-1.5",
+    api_key=GEMINI_API_KEY,  # pass API key here
+    generation_config=generation_config
+)
 # --- Microsoft Graph API Configuration for Draft Emails ---
 # You MUST register an application in Azure Active Directory to get these values.
 # Set these as environment variables (e.g., in your .env file):
