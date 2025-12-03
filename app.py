@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, jsonify
 from google import genai
-from google.genai import TextGenerationModel, GenerationConfig
+from google.generativeai import TextGenerationModel, GenerationConfig
 import logging
 import re
 from dotenv import load_dotenv
