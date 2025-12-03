@@ -1,6 +1,5 @@
 import os
 from flask import Flask, request, jsonify
-from google import genai
 from google.generativeai import TextGenerationModel, GenerationConfig
 import logging
 import re
