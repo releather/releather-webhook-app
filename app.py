@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request, jsonify
-import google.generativeai as genai
+from google import genai
 import logging
 import re
 from dotenv import load_dotenv
