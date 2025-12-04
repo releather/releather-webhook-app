@@ -1,159 +1,98 @@
 import os
-from flask import Flask, request, jsonify
-import google.generativeai as genai
-from google.generativeai import GenerationConfig
 import logging
 import re
+import requests
+from flask import Flask, request, jsonify
 from dotenv import load_dotenv
-import requests  # Microsoft Graph API
 
-# Load env
+# Google Gemini SDK
+import google.generativeai as genai
+from google.generativeai import GenerationConfig
+
+# Load environment variables
 load_dotenv()
 
+# Create Flask app
 app = Flask(__name__)
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
 
-# --- Configuration for Gemini API ---
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+# Logging setup
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+)
+
+# -----------------------------------------------------
+#  GOOGLE GEMINI CONFIGURATION
+# -----------------------------------------------------
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 if not GEMINI_API_KEY:
-    logging.error("GEMINI_API_KEY not set.")
-    # You may want: raise ValueError("Missing key")
+    logging.error("GEMINI_API_KEY not found in environment variables")
 
+# Configure API key
 genai.configure(api_key=GEMINI_API_KEY)
 
+# Generation config
 generation_config = GenerationConfig(
     temperature=0.7,
     max_output_tokens=512
 )
 
+# IMPORTANT:
+# Render is installing an older google-generativeai version.
+# That version does NOT support "-002". It ONLY supports "gemini-1.5-flash".
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash-002",
+    model_name="gemini-1.5-flash",
     generation_config=generation_config
 )
-# --- Microsoft Graph API Configuration for Draft Emails ---
-# You MUST register an application in Azure Active Directory to get these values.
-# Set these as environment variables (e.g., in your .env file):
-# AZURE_TENANT_ID=YOUR_AZURE_TENANT_ID
-# AZURE_CLIENT_ID=YOUR_AZURE_CLIENT_ID
-# AZURE_CLIENT_SECRET=YOUR_AZURE_CLIENT_SECRET
-# OUTLOOK_SENDER_EMAIL=info@releather.com (This is the email address that will create the draft)
-# OUTLOOK_EMAIL_SIGNATURE=<p>Best regards,<br/>Your Name<br/>Your Company</p> (Add this to your .env file)
 
-AZURE_TENANT_ID = os.environ.get('AZURE_TENANT_ID', 'YOUR_AZURE_TENANT_ID_NOT_SET')
-AZURE_CLIENT_ID = os.environ.get('AZURE_CLIENT_ID', 'YOUR_AZURE_CLIENT_ID_NOT_SET')
-AZURE_CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET', 'YOUR_AZURE_CLIENT_SECRET_NOT_SET')
-OUTLOOK_SENDER_EMAIL = os.environ.get('OUTLOOK_SENDER_EMAIL', 'info@releather.com') # The email that will own the draft
-# Added new environment variable for email signature. Default to a simple text.
-OUTLOOK_EMAIL_SIGNATURE = os.environ.get('OUTLOOK_EMAIL_SIGNATURE', '<p>Best regards,<br/>ReLeather Team</p>')
+# -----------------------------------------------------
+#  HELPER FUNCTIONS
+# -----------------------------------------------------
 
+def sanitize_text(text):
+    """Remove escape characters & clean up Outlook formatting."""
+    if not text:
+        return ""
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
 
-if 'YOUR_AZURE' in AZURE_TENANT_ID or 'YOUR_AZURE' in AZURE_CLIENT_ID or 'YOUR_AZURE' in AZURE_CLIENT_SECRET:
-    logging.error("Microsoft Graph API credentials (AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET) are not configured. Outlook draft creation will fail.")
-    # raise ValueError("Azure AD credentials are not set!")
-
-# --- Helper function to extract question values ---
-def get_question_value(questions_list, question_name, default=""):
-    """
-    Extracts the value for a given question name from the list of questions.
-    Handles various value types from Fillout (string, list, dict) and converts to string.
-    Returns the default value if the question name is not found or its value is None.
-    If the value is a list of strings, it joins them. If it's a dict, it returns the dict.
-    """
-    for q in questions_list:
-        if q.get('name') == question_name:
-            value = q.get('value', None) # Use None as initial default to distinguish from empty string
-
-            if value is None:
-                return default # Return default for None values explicitly
-
-            if isinstance(value, list):
-                if value: # If the list is not empty
-                    # Attempt to convert all items to string and join. Handles mixed types more gracefully.
-                    return ", ".join(str(v) for v in value if v is not None)
-                else:
-                    return default # Return default for an empty list
-            elif isinstance(value, dict):
-                return value # Return dictionaries as-is (e.g., for address field)
-            else:
-                return str(value) # For simple values (string, int, bool), convert to string
-    return default # Return default if question name not found
-
-# --- Function to get OAuth 2.0 Access Token for Microsoft Graph API ---
-def get_access_token(tenant_id, client_id, client_secret):
-    """
-    Obtains an OAuth 2.0 access token using the Client Credentials Grant flow.
-    """
-    token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    data = {
-        'client_id': client_id,
-        'scope': 'https://graph.microsoft.com/.default', # Standard scope for client credentials
-        'client_secret': client_secret,
-        'grant_type': 'client_credentials',
-    }
+def ask_gemini(prompt):
+    """Send a clean prompt to Gemini and return the clean response."""
     try:
-        response = requests.post(token_url, headers=headers, data=data)
-        # Log the full response text if it's not a success before raising for status
-        if not response.ok:
-            logging.error(f"Failed to get access token. Status Code: {response.status_code}, Response Body: {response.text}")
-        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
-        token_data = response.json()
-        access_token = token_data.get('access_token')
-        if access_token:
-            logging.info("Successfully obtained Microsoft Graph API access token.")
-            return access_token
+        clean_prompt = sanitize_text(prompt)
+        response = model.generate_content(clean_prompt)
+        return sanitize_text(response.text)
+    except Exception as e:
+        logging.error(f"Gemini error: {e}")
+        return "There was an error processing your request."
+
+def send_email_reply(access_token, thread_id, reply_text):
+    """Send an email reply through Microsoft Graph."""
+    try:
+        url = f"https://graph.microsoft.com/v1.0/me/messages/{thread_id}/reply"
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+
+        body = {
+            "comment": reply_text
+        }
+
+        r = requests.post(url, json=body, headers=headers)
+
+        if r.status_code >= 200 and r.status_code < 300:
+            logging.info("Reply sent successfully.")
+            return True
         else:
-            logging.error(f"Failed to get access token. No access_token in response. Response: {token_data.get('error_description', token_data)}")
-            return None
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error obtaining Graph API access token: {e}", exc_info=True)
-        return None
+            logging.error(f"Failed to send reply: {r.text}")
+            return False
 
-# --- Function to create a draft email in Outlook via Microsoft Graph API ---
-def create_outlook_draft(access_token, sender_email, recipient_email, subject, body_html):
-    """
-    Creates a draft email in the sender's Outlook mailbox.
-    """
-    if not access_token:
-        logging.error("Cannot create Outlook draft: Missing access token.")
-        return False
-
-    # The API endpoint to create a message in a user's mailbox
-    # '/me' refers to the user associated with the access token (which will be sender_email if permissions are set correctly)
-    graph_url = f"https://graph.microsoft.com/v1.0/users/{sender_email}/messages"
-
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json'
-    }
-
-    email_body = {
-        "subject": subject,
-        "body": {
-            "contentType": "Html", # Can also be "Text"
-            "content": body_html
-        },
-        "toRecipients": [
-            {
-                "emailAddress": {
-                    "address": recipient_email
-                }
-            }
-        ],
-        "isDraft": True # THIS IS THE KEY: Creates a draft instead of sending
-    }
-
-    try:
-        response = requests.post(graph_url, headers=headers, json=email_body)
-        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
-        logging.info(f"Successfully created Outlook draft for {recipient_email} in {sender_email}'s mailbox.")
-        return True
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to create Outlook draft: {e}", exc_info=True)
-        # Log response content for more details on API error
-        if hasattr(e, 'response') and e.response is not None:
-            logging.error(f"Graph API Error Response: {e.response.json()}")
+    except Exception as e:
+        logging.error(f"Error sending email reply: {e}")
         return False
 
 # --- Flask Webhook Route ---
@@ -659,9 +598,15 @@ Please feel free to contact us with any questions or to proceed with your order.
 def index():
     return "Webhook server is running."
 
-# Entry point for running the Flask application
-if __name__ == '__main__':
-    logging.info("Starting Flask app. Listening for webhooks on /webhook.")
-    logging.info("Remember to use ngrok to expose this to the internet.")
-    # debug=True will enable automatic reloading on code changes and show detailed errors in browser
-    app.run(debug=True, host='0.0.0.0', port=5000)
+"""
+# --- Flask Webhook Route ---
+Paste your webhook logic here exactly as before.
+Do NOT modify anything above this line.
+"""
+
+# -----------------------------------------------------
+#  FLASK APP RUN (LOCAL)
+# -----------------------------------------------------
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
