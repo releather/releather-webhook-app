@@ -95,6 +95,34 @@ def send_email_reply(access_token, thread_id, reply_text):
         logging.error(f"Error sending email reply: {e}")
         return False
 
+
+# --- Helper function to extract question values ---
+def get_question_value(questions_list, question_name, default=""):
+    """
+    Extracts the value for a given question name from the list of questions.
+    Handles various value types from Fillout (string, list, dict) and converts to string.
+    Returns the default value if the question is missing or empty.
+    """
+    for q in questions_list:
+        if q.get('name') == question_name:
+            value = q.get('value')
+
+            if value is None:
+                return default
+
+            if isinstance(value, list):
+                if value:
+                    return ", ".join(str(v) for v in value if v)
+                return default
+
+            if isinstance(value, dict):
+                return value
+
+            return str(value)
+
+    return default
+
+
 # --- Flask Webhook Route ---
 @app.route('/webhook', methods=['POST'])
 def webhook():
