@@ -79,12 +79,11 @@ def webhook():
 
         questions = data.get("submission", {}).get("questions", [])
 
-        # ✅ SAFE VALUE EXTRACTOR
+        # ---- VALUE EXTRACTOR ----
         def get_value(name):
             for q in questions:
                 if q.get("name") == name:
                     value = q.get("value", "")
-
                     if isinstance(value, list):
                         if not value:
                             return ""
@@ -93,13 +92,18 @@ def webhook():
                             return first
                         if isinstance(first, dict):
                             return first.get("label") or first.get("value") or ""
-
                     return value
             return ""
 
-        # --------------------------------------------------
-        # ✅ ROBUST FIRST NAME EXTRACTION (ADDED)
-        # --------------------------------------------------
+        # ---- FILE EXTRACTOR ----
+        def get_files(name):
+            for q in questions:
+                if q.get("name") == name:
+                    value = q.get("value", [])
+                    return value if isinstance(value, list) else []
+            return []
+
+        # ---- FIRST NAME (ROBUST) ----
         first_name = (
             get_value("First Name")
             or get_value("First name")
@@ -113,6 +117,9 @@ def webhook():
         color_selection = get_value("Color Selection")
         customer_email = get_value("Email")
 
+        attached_photos = get_files("Attach Photos")
+        has_photos = isinstance(attached_photos, list) and len(attached_photos) > 0
+
         # ---- CLEAN FIRST NAME ----
         if isinstance(first_name, str):
             first_name = first_name.strip().title()
@@ -125,7 +132,39 @@ def webhook():
             logging.warning("Missing email or service type")
             return jsonify({"status": "ignored"}), 200
 
-        # ---- INTRO BLOCK ----
+        # ==================================================
+        # ✅ NO PHOTOS → SHORT EMAIL ONLY
+        # ==================================================
+        if not has_photos:
+            email_body = f"""Hi {greeting_name},
+
+Thank you for your interest in ReLeather.
+
+We’d be happy to look into {service_type} for your {item_type}. To provide accurate recommendations and pricing, please send us a few photos, any additional details, and if possible dimensions. We’ll follow up shortly.
+"""
+
+            email_body = email_body.replace("\n", "<br/>") + "<br/><br/>" + OUTLOOK_EMAIL_SIGNATURE
+
+            access_token = get_access_token(
+                AZURE_TENANT_ID,
+                AZURE_CLIENT_ID,
+                AZURE_CLIENT_SECRET
+            )
+
+            if access_token:
+                create_outlook_draft(
+                    access_token,
+                    OUTLOOK_SENDER_EMAIL,
+                    customer_email,
+                    f"{service_type} – ReLeather",
+                    email_body
+                )
+
+            return jsonify({"status": "awaiting_photos"}), 200
+
+        # ==================================================
+        # ✅ PHOTOS PRESENT → FULL EMAIL
+        # ==================================================
         email_body = f"""Hi {greeting_name},
 
 Thank you for your interest in ReLeather.
@@ -133,41 +172,31 @@ Thank you for your interest in ReLeather.
 Based on the information provided, we recommend our {service_type} for your {item_type}.
 """
 
-        # ---- CONDITIONAL SERVICE BODY ----
         if service_type == "Leather Restoration":
             email_body += """
 This service addresses surface wear such as color fading, light scratches, scuffs, stains, and spotting. It also restores the leather’s original uniform color and matte finish. We complete the process with a protective coating to prevent color transfer.
-
-Please note: We cannot repair or restore the grain texture in areas where it has been worn smooth or torn. We can perform minor patching for tears if needed. However, the cosmetic result varies depending on the damage.
 """
 
         elif service_type == "Leather Cleaning & Conditioning":
             email_body += """
-Leather Cleaning removes surface dirt and build up, deep cleans the leather surface. Leather Conditioning moisturizes, softens, strengthens, polishes the leather, and prevents water spotting and cracking. Leather Retouching treats minor scuffs and discoloration, and renews color finish. Leather Protection applies a finish protection.
+Leather Cleaning removes surface dirt and build up, deep cleans the leather surface. Leather Conditioning moisturizes, softens, strengthens, polishes the leather.
 """
 
         elif service_type == "Leather Dyeing (Color Change)":
             email_body += f"""
-This service treats the old finish and dyes the leather in your selected color — {color_selection}. It also refreshes the overall finish of the item, enhancing both appearance and longevity. We complete the process with a protective topcoat to prevent color transfer.
-
-Please note: The new surface coating applied during dyeing may reduce the suppleness of the leather. Accent stitching will be dyed to match the new leather color. While we carefully mask fabric strips and linings during restoration, some dye transfer may occur. We take precautions to minimize this.
+This service treats the old finish and dyes the leather in your selected color — {color_selection}. We complete the process with a protective topcoat.
 """
 
         elif service_type == "Leather Reupholstery":
             email_body += """
-Full Leather Reupholstery replaces all upholstery with new leather of your choice. We offer a wide selection of colors, textures, and finishes. This requires purchasing new leather and disassembly of the upholstery.
-
-Partial Leather Reupholstery service recovers damaged leather for specific cushions. This also requires purchasing new leather and upholstery disassembly.
-
-Please note: We source leather that closely matches your original; however, the worn-in patina of existing leather may not match seamlessly. For accurate measurements and pattern matching, we require the original seat cover for each unique cushion size mailed to us.
+Full Leather Reupholstery replaces all upholstery with new leather of your choice.
 """
 
         elif service_type == "Foam Replacement & Restuffing":
             email_body += """
-This service replaces the seat cushion core with high-resilience (HR) grade foam and adds polyester fiber padding for improved structure and comfort.
+This service replaces the seat cushion core with high-resilience foam.
 """
 
-        # ---- ENDING BLOCK ----
         email_body += """
 Estimated cost: $.
 
@@ -175,11 +204,7 @@ Completion time: 1–2 weeks.
 
 Drop-off: By appointment at our Fullerton, CA shop.
 
-Free Pick Up and Delivery in Orange County.
-
-$200 Pick Up and Delivery in Los Angeles, San Diego, and Riverside County.
-
-Please contact us with any questions or to proceed with your order. Thank you.
+Please contact us with any questions or to proceed.
 """
 
         email_body = email_body.replace("\n", "<br/>") + "<br/><br/>" + OUTLOOK_EMAIL_SIGNATURE
