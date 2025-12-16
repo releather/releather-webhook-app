@@ -95,7 +95,7 @@ def webhook():
             return jsonify({"status": "ignored"}), 200
 
         # ---- INTRO BLOCK ----
-        email_body = f"""Hi {customer_first_name},
+        email_body = f"""Hi,
 
 Thank you for your interest in ReLeather.
 
