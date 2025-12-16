@@ -188,11 +188,41 @@ Full Leather Reupholstery replaces all upholstery with new leather of your choic
 Partial Leather Reupholstery service recovers damaged leather for specific cushions. This also requires purchasing new leather and upholstery disassembly.
 
 Please note: We source leather that closely matches your original; however, the worn-in patina of existing leather may not match seamlessly. For accurate measurements and pattern matching, we require the original seat cover for each unique cushion size mailed to us.
+
+Reference Pricing:
+🔘 Standard Sofa Seat Cushion: $1100 each
+Reference dimensions:
+- Thickness: 4" to 6"
+- Width: 22" to 26"
+- Depth: 20" to 24"
+
+🔘 Larger Seat Cushions (oversized/deep-seat sofas): $1200+ each
+Reference dimensions:
+- Thickness: 5" to 8"
+- Width: 26" to 32"
+- Depth: 24" to 34"
+
+Foam core not included.  Additional labor cost for fixed seating.
 """
 
         elif service_type == "Foam Replacement & Restuffing":
             email_body += """
-This service replaces the seat cushion core with high-resilience (HR) grade foam and adds polyester fiber padding for improved structure and comfort.
+This service replaces the seat cushion core with high-resilience (HR) grade foam and adds polyester fiber padding for a fuller, more structured look. We offer HR foam in soft, medium, and firm densities to suit your comfort preference.
+
+Please note: We do not use down feather filling. To ensure accurate measurements and pattern matching, we may require the original seat cover for each unique cushion size mailed to us.
+
+Reference Pricing:
+🔘 Standard Sofa Seat Cushion: $350–$450 each
+Reference dimensions:
+- Thickness: 4" to 6"
+- Width: 22" to 26"
+- Depth: 20" to 24"
+
+🔘 Larger Seat Cushions (oversized/deep-seat sofas): $450–$600 each
+Reference dimensions:
+- Thickness: 5" to 8"
+- Width: 26" to 32"
+- Depth: 24" to 34"
 """
 
         # ---- ENDING BLOCK ----
