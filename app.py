@@ -190,13 +190,13 @@ Partial Leather Reupholstery service recovers damaged leather for specific cushi
 Please note: We source leather that closely matches your original; however, the worn-in patina of existing leather may not match seamlessly. For accurate measurements and pattern matching, we require the original seat cover for each unique cushion size mailed to us.
 
 Reference Pricing:
-🔘 Standard Sofa Seat Cushion: $1100 each
+• Standard Sofa Seat Cushion: $1100 each
 Reference dimensions:
 - Thickness: 4" to 6"
 - Width: 22" to 26"
 - Depth: 20" to 24"
 
-🔘 Larger Seat Cushions (oversized/deep-seat sofas): $1200+ each
+• Larger Seat Cushions (oversized/deep-seat sofas): $1200+ each
 Reference dimensions:
 - Thickness: 5" to 8"
 - Width: 26" to 32"
@@ -212,13 +212,13 @@ This service replaces the seat cushion core with high-resilience (HR) grade foam
 Please note: We do not use down feather filling. To ensure accurate measurements and pattern matching, we may require the original seat cover for each unique cushion size mailed to us.
 
 Reference Pricing:
-🔘 Standard Sofa Seat Cushion: $350–$450 each
+• Standard Sofa Seat Cushion: $350–$450 each
 Reference dimensions:
 - Thickness: 4" to 6"
 - Width: 22" to 26"
 - Depth: 20" to 24"
 
-🔘 Larger Seat Cushions (oversized/deep-seat sofas): $450–$600 each
+• Larger Seat Cushions (oversized/deep-seat sofas): $450–$600 each
 Reference dimensions:
 - Thickness: 5" to 8"
 - Width: 26" to 32"
@@ -236,6 +236,8 @@ Drop-off: By appointment at our Fullerton, CA shop.
 Free Pick Up and Delivery in Orange County.
 
 $200 Pick Up and Delivery in Los Angeles, San Diego, and Riverside County.
+
+Non-local customers: Shipping instructions for mailed-in orders will be provided after confirming your order. Return shipping is quoted separately. 
 
 Please contact us with any questions or to proceed with your order. Thank you.
 """
