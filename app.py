@@ -94,6 +94,38 @@ def webhook():
             logging.warning("Missing email or service type")
             return jsonify({"status": "ignored"}), 200
 
+    # ---- ATTACHMENT CHECK ----
+attached_photos = get_files("Attach Photos")
+has_photos = isinstance(attached_photos, list) and len(attached_photos) > 0
+
+if not has_photos:
+    email_body = f"""Hi,
+
+Thank you for your interest in ReLeather.
+
+We’d be happy to look into {service_type} for your {item_type}. To provide accurate recommendations and pricing, please send us a few photos, any additional details, and if possible dimensions. We’ll follow up shortly.
+"""
+
+    email_body = email_body.replace("\n", "<br/>") + "<br/><br/>" + OUTLOOK_EMAIL_SIGNATURE
+
+    access_token = get_access_token(
+        AZURE_TENANT_ID,
+        AZURE_CLIENT_ID,
+        AZURE_CLIENT_SECRET
+    )
+
+    if access_token:
+        create_outlook_draft(
+            access_token,
+            OUTLOOK_SENDER_EMAIL,
+            customer_email,
+            f"{service_type} – ReLeather",
+            email_body
+        )
+
+    return jsonify({"status": "awaiting_photos"}), 200
+
+
         # ---- INTRO BLOCK ----
         email_body = f"""Hi,
 
