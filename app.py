@@ -79,7 +79,7 @@ def webhook():
 
         questions = data.get("submission", {}).get("questions", [])
 
-        # ✅ FIXED VALUE EXTRACTOR
+        # ✅ SAFE VALUE EXTRACTOR
         def get_value(name):
             for q in questions:
                 if q.get("name") == name:
@@ -88,29 +88,36 @@ def webhook():
                     if isinstance(value, list):
                         if not value:
                             return ""
-
                         first = value[0]
-
                         if isinstance(first, str):
                             return first
-
                         if isinstance(first, dict):
                             return first.get("label") or first.get("value") or ""
 
                     return value
             return ""
 
+        # ---- FORM VALUES ----
+        first_name = get_value("First Name")
         service_type = get_value("What leather service are you interested in?")
         item_type = get_value("What type of leather item?")
         color_selection = get_value("Color Selection")
         customer_email = get_value("Email")
+
+        # ---- CLEAN FIRST NAME ----
+        if isinstance(first_name, str):
+            first_name = first_name.strip().title()
+        else:
+            first_name = ""
+
+        greeting_name = first_name if first_name else "there"
 
         if not customer_email or not service_type:
             logging.warning("Missing email or service type")
             return jsonify({"status": "ignored"}), 200
 
         # ---- INTRO BLOCK ----
-        email_body = f"""Hi,
+        email_body = f"""Hi {greeting_name},
 
 Thank you for your interest in ReLeather.
 
