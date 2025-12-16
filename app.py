@@ -95,22 +95,18 @@ def webhook():
                     return value
             return ""
 
-        # ---- ROBUST FILE EXTRACTOR (FIXED) ----
-        def get_files(name):
+        # ---- ✅ GLOBAL FILE DETECTOR (FIX) ----
+        def has_any_uploaded_files(questions):
             for q in questions:
-                if q.get("name") == name:
-                    value = q.get("value", [])
-                    if not isinstance(value, list):
-                        return []
-
-                    valid_files = []
+                value = q.get("value")
+                if isinstance(value, list):
                     for f in value:
                         if isinstance(f, dict):
                             if f.get("url") or f.get("filename") or f.get("name"):
-                                valid_files.append(f)
+                                return True
+            return False
 
-                    return valid_files
-            return []
+        has_photos = has_any_uploaded_files(questions)
 
         # ---- FIRST NAME (ROBUST) ----
         first_name = (
@@ -126,9 +122,6 @@ def webhook():
         color_selection = get_value("Color Selection")
         customer_email = get_value("Email")
 
-        attached_photos = get_files("Attach Photos")
-        has_photos = len(attached_photos) > 0
-
         # ---- CLEAN FIRST NAME ----
         if isinstance(first_name, str):
             first_name = first_name.strip().title()
@@ -142,7 +135,7 @@ def webhook():
             return jsonify({"status": "ignored"}), 200
 
         # ==================================================
-        # ✅ NO PHOTOS → SHORT EMAIL ONLY
+        # ✅ NO PHOTOS → SHORT EMAIL
         # ==================================================
         if not has_photos:
             email_body = f"""Hi {greeting_name},
