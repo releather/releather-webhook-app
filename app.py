@@ -84,7 +84,7 @@ def webhook():
                     return value
             return ""
 
-        # ---- GLOBAL FILE DETECTOR (FIX) ----
+        # ---- GLOBAL FILE DETECTOR ----
         def has_any_uploaded_files():
             for q in questions:
                 value = q.get("value")
@@ -117,6 +117,12 @@ def webhook():
         if not customer_email or not service_type:
             return jsonify({"status": "ignored"}), 200
 
+        token = get_access_token(
+            AZURE_TENANT_ID,
+            AZURE_CLIENT_ID,
+            AZURE_CLIENT_SECRET,
+        )
+
         # ==================================================
         # NO PHOTOS → SHORT EMAIL
         # ==================================================
@@ -127,9 +133,12 @@ Thank you for your interest in ReLeather.
 
 We’d be happy to look into {service_type} for your {item_type}. To provide accurate recommendations and pricing, please send us a few photos, any additional details, and if possible dimensions. We’ll follow up shortly.
 """
-            email_body = email_body.replace("\n", "<br/>") + "<br/><br/>" + OUTLOOK_EMAIL_SIGNATURE
+            email_body = (
+                email_body.replace("\n", "<br/>")
+                + "<br/><br/>"
+                + OUTLOOK_EMAIL_SIGNATURE
+            )
 
-            token = get_access_token(AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET)
             if token:
                 create_outlook_draft(
                     token,
@@ -170,4 +179,28 @@ Drop-off: By appointment at our Fullerton, CA shop.
 Please contact us with any questions or to proceed.
 """
 
-        email_body = email_body.replace("\n", "<br/>") + "<br/><br/>" + OUTLOOK_EMAIL_SIGNATURE
+        email_body = (
+            email_body.replace("\n", "<br/>")
+            + "<br/><br/>"
+            + OUTLOOK_EMAIL_SIGNATURE
+        )
+
+        if token:
+            create_outlook_draft(
+                token,
+                OUTLOOK_SENDER_EMAIL,
+                customer_email,
+                f"{service_type} – ReLeather",
+                email_body,
+            )
+
+        return jsonify({"status": "draft_created"}), 200
+
+    except Exception as e:
+        logging.exception("Webhook error")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return "Webhook server is running."
