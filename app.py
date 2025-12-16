@@ -103,8 +103,8 @@ def webhook():
             or get_value("firstname")
         )
 
-        service_type = get_value("What leather service are you interested in?")
-        item_type = get_value("What type of leather item?")
+        service_type = get_value("What leather service are you interested in?").strip()
+        item_type = get_value("What type of leather item?").strip()
         color_selection = get_value("Color Selection")
         customer_email = get_value("Email")
 
