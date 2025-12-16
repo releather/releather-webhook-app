@@ -97,8 +97,17 @@ def webhook():
                     return value
             return ""
 
+        # --------------------------------------------------
+        # ✅ ROBUST FIRST NAME EXTRACTION (ADDED)
+        # --------------------------------------------------
+        first_name = (
+            get_value("First Name")
+            or get_value("First name")
+            or get_value("first_name")
+            or get_value("firstname")
+        )
+
         # ---- FORM VALUES ----
-        first_name = get_value("First Name")
         service_type = get_value("What leather service are you interested in?")
         item_type = get_value("What type of leather item?")
         color_selection = get_value("Color Selection")
