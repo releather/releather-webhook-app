@@ -80,10 +80,13 @@ def webhook():
         questions = data.get("submission", {}).get("questions", [])
 
         def get_value(name):
-            for q in questions:
-                if q.get("name") == name:
-                    return q.get("value", "")
-            return ""
+    for q in questions:
+        if q.get("name") == name:
+            value = q.get("value", "")
+            if isinstance(value, list):
+                return value[0] if value else ""
+            return value
+    return ""
 
         service_type = get_value("What leather service are you interested in?")
         item_type = get_value("What type of leather item?")
