@@ -79,20 +79,30 @@ def webhook():
 
         questions = data.get("submission", {}).get("questions", [])
 
+        # ✅ FIXED VALUE EXTRACTOR
         def get_value(name):
             for q in questions:
                 if q.get("name") == name:
-                    return q.get("value", "")
+                    value = q.get("value", "")
+
+                    if isinstance(value, list):
+                        if not value:
+                            return ""
+
+                        first = value[0]
+
+                        if isinstance(first, str):
+                            return first
+
+                        if isinstance(first, dict):
+                            return first.get("label") or first.get("value") or ""
+
+                    return value
             return ""
 
-        def normalize_value(value):
-            if isinstance(value, list):
-                return ", ".join(value)
-            return value
-
         service_type = get_value("What leather service are you interested in?")
-        item_type = normalize_value(get_value("What type of leather item?"))
-        color_selection = normalize_value(get_value("Color Selection"))
+        item_type = get_value("What type of leather item?")
+        color_selection = get_value("Color Selection")
         customer_email = get_value("Email")
 
         if not customer_email or not service_type:
@@ -134,30 +144,11 @@ Full Leather Reupholstery replaces all upholstery with new leather of your choic
 Partial Leather Reupholstery service recovers damaged leather for specific cushions. This also requires purchasing new leather and upholstery disassembly.
 
 Please note: We source leather that closely matches your original; however, the worn-in patina of existing leather may not match seamlessly. For accurate measurements and pattern matching, we require the original seat cover for each unique cushion size mailed to us.
-
-Reference Pricing:
-- Standard Sofa Seat Cushion: $1100 each
-  Thickness: 4–6"
-  Width: 22–26"
-  Depth: 20–24"
-
-- Larger Seat Cushions: $1200+ each
-  Thickness: 5–8"
-  Width: 26–32"
-  Depth: 24–34"
-
-Foam core not included. Additional labor cost applies for fixed seating.
 """
 
         elif service_type == "Foam Replacement & Restuffing":
             email_body += """
-This service replaces the seat cushion core with high-resilience (HR) grade foam and adds polyester fiber padding for improved structure and comfort. Foam is available in soft, medium, and firm densities.
-
-Reference Pricing:
-- Standard Sofa Seat Cushion: $350–$450 each
-- Larger Seat Cushions: $450–$600 each
-
-Please note: We do not use down feather filling. For accurate sizing, we may require the original seat cover mailed to us.
+This service replaces the seat cushion core with high-resilience (HR) grade foam and adds polyester fiber padding for improved structure and comfort.
 """
 
         # ---- ENDING BLOCK ----
@@ -171,8 +162,6 @@ Drop-off: By appointment at our Fullerton, CA shop.
 Free Pick Up and Delivery in Orange County.
 
 $200 Pick Up and Delivery in Los Angeles, San Diego, and Riverside County.
-
-Non-local customers: Shipping instructions for mailed-in orders will be provided after confirming your order. Return shipping is quoted separately.
 
 Please contact us with any questions or to proceed with your order. Thank you.
 """
