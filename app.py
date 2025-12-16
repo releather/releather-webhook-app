@@ -1,5 +1,6 @@
 import os
 import logging
+import requests
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 
@@ -16,13 +17,62 @@ AZURE_CLIENT_SECRET = os.environ.get("AZURE_CLIENT_SECRET")
 OUTLOOK_SENDER_EMAIL = os.environ.get("OUTLOOK_SENDER_EMAIL")
 OUTLOOK_EMAIL_SIGNATURE = os.environ.get("OUTLOOK_EMAIL_SIGNATURE", "")
 
-# ---- TEMP SAFE STUBS ----
-def get_access_token(*args, **kwargs):
-    return None
 
-def create_outlook_draft(*args, **kwargs):
+# ---- MICROSOFT GRAPH HELPERS ----
+def get_access_token(tenant_id, client_id, client_secret):
+    token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
+
+    response = requests.post(
+        token_url,
+        data={
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "scope": "https://graph.microsoft.com/.default",
+        },
+        timeout=10,
+    )
+
+    logging.info(f"Token status: {response.status_code}")
+
+    if response.status_code != 200:
+        logging.error(f"Token error: {response.text}")
+        return None
+
+    return response.json().get("access_token")
+
+
+def create_outlook_draft(access_token, sender_email, recipient_email, subject, body):
+    url = f"https://graph.microsoft.com/v1.0/users/{sender_email}/messages"
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "subject": subject,
+        "body": {
+            "contentType": "HTML",
+            "content": body,
+        },
+        "toRecipients": [
+            {"emailAddress": {"address": recipient_email}}
+        ],
+        "isDraft": True,
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=10)
+
+    if response.status_code not in (200, 201):
+        logging.error(f"Graph error: {response.status_code} {response.text}")
+        return False
+
+    logging.info("Outlook draft created successfully")
     return True
 
+
+# ---- WEBHOOK ----
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
@@ -82,14 +132,17 @@ Please feel free to contact us with any questions or to proceed with your order.
                 email_subject,
                 email_body
             )
+        else:
+            logging.error("No access token — draft not created")
 
-        return jsonify({"status": "draft_created"}), 200
+        return jsonify({"status": "processed"}), 200
 
     except Exception as e:
         logging.error(str(e))
         return jsonify({"error": "internal error"}), 500
 
 
+# ---- HEALTH CHECK ----
 @app.route("/", methods=["GET"])
 def index():
     return "Webhook server is running."
