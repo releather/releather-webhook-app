@@ -95,12 +95,21 @@ def webhook():
                     return value
             return ""
 
-        # ---- FILE EXTRACTOR ----
+        # ---- ROBUST FILE EXTRACTOR (FIXED) ----
         def get_files(name):
             for q in questions:
                 if q.get("name") == name:
                     value = q.get("value", [])
-                    return value if isinstance(value, list) else []
+                    if not isinstance(value, list):
+                        return []
+
+                    valid_files = []
+                    for f in value:
+                        if isinstance(f, dict):
+                            if f.get("url") or f.get("filename") or f.get("name"):
+                                valid_files.append(f)
+
+                    return valid_files
             return []
 
         # ---- FIRST NAME (ROBUST) ----
@@ -118,7 +127,7 @@ def webhook():
         customer_email = get_value("Email")
 
         attached_photos = get_files("Attach Photos")
-        has_photos = isinstance(attached_photos, list) and len(attached_photos) > 0
+        has_photos = len(attached_photos) > 0
 
         # ---- CLEAN FIRST NAME ----
         if isinstance(first_name, str):
@@ -174,12 +183,12 @@ Based on the information provided, we recommend our {service_type} for your {ite
 
         if service_type == "Leather Restoration":
             email_body += """
-This service addresses surface wear such as color fading, light scratches, scuffs, stains, and spotting. It also restores the leather’s original uniform color and matte finish. We complete the process with a protective coating to prevent color transfer.
+This service addresses surface wear such as color fading, light scratches, scuffs, stains, and spotting. It also restores the leather’s original uniform color and matte finish.
 """
 
         elif service_type == "Leather Cleaning & Conditioning":
             email_body += """
-Leather Cleaning removes surface dirt and build up, deep cleans the leather surface. Leather Conditioning moisturizes, softens, strengthens, polishes the leather.
+Leather Cleaning removes surface dirt and build up, deep cleans the leather surface. Leather Conditioning moisturizes and protects the leather.
 """
 
         elif service_type == "Leather Dyeing (Color Change)":
