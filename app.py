@@ -31,8 +31,6 @@ def get_access_token(tenant_id, client_id, client_secret):
         timeout=10,
     )
 
-    logging.info(f"Token status: {response.status_code}")
-
     if response.status_code != 200:
         logging.error(f"Token error: {response.text}")
         return None
@@ -50,13 +48,8 @@ def create_outlook_draft(access_token, sender_email, recipient_email, subject, b
 
     payload = {
         "subject": subject,
-        "body": {
-            "contentType": "HTML",
-            "content": body,
-        },
-        "toRecipients": [
-            {"emailAddress": {"address": recipient_email}}
-        ],
+        "body": {"contentType": "HTML", "content": body},
+        "toRecipients": [{"emailAddress": {"address": recipient_email}}],
         "isDraft": True,
     }
 
@@ -66,7 +59,6 @@ def create_outlook_draft(access_token, sender_email, recipient_email, subject, b
         logging.error(f"Graph error: {response.status_code} {response.text}")
         return False
 
-    logging.info("Outlook draft created successfully")
     return True
 
 
@@ -75,8 +67,6 @@ def create_outlook_draft(access_token, sender_email, recipient_email, subject, b
 def webhook():
     try:
         data = request.get_json()
-        logging.info("Webhook received")
-
         questions = data.get("submission", {}).get("questions", [])
 
         # ---- VALUE EXTRACTOR ----
@@ -88,54 +78,47 @@ def webhook():
                         if not value:
                             return ""
                         first = value[0]
-                        if isinstance(first, str):
-                            return first
                         if isinstance(first, dict):
                             return first.get("label") or first.get("value") or ""
+                        return first
                     return value
             return ""
 
-        # ---- ✅ GLOBAL FILE DETECTOR (FIX) ----
-        def has_any_uploaded_files(questions):
+        # ---- GLOBAL FILE DETECTOR (FIX) ----
+        def has_any_uploaded_files():
             for q in questions:
                 value = q.get("value")
                 if isinstance(value, list):
                     for f in value:
-                        if isinstance(f, dict):
-                            if f.get("url") or f.get("filename") or f.get("name"):
-                                return True
+                        if isinstance(f, dict) and (
+                            f.get("url") or f.get("filename") or f.get("name")
+                        ):
+                            return True
             return False
 
-        has_photos = has_any_uploaded_files(questions)
-
-        # ---- FIRST NAME (ROBUST) ----
+        # ---- FORM VALUES ----
         first_name = (
             get_value("First Name")
             or get_value("First name")
-            or get_value("first_name")
             or get_value("firstname")
         )
 
-        # ---- FORM VALUES ----
         service_type = get_value("What leather service are you interested in?")
         item_type = get_value("What type of leather item?")
         color_selection = get_value("Color Selection")
         customer_email = get_value("Email")
 
-        # ---- CLEAN FIRST NAME ----
-        if isinstance(first_name, str):
-            first_name = first_name.strip().title()
-        else:
-            first_name = ""
+        has_photos = has_any_uploaded_files()
 
+        # ---- CLEAN FIRST NAME ----
+        first_name = first_name.strip().title() if isinstance(first_name, str) else ""
         greeting_name = first_name if first_name else "there"
 
         if not customer_email or not service_type:
-            logging.warning("Missing email or service type")
             return jsonify({"status": "ignored"}), 200
 
         # ==================================================
-        # ✅ NO PHOTOS → SHORT EMAIL
+        # NO PHOTOS → SHORT EMAIL
         # ==================================================
         if not has_photos:
             email_body = f"""Hi {greeting_name},
@@ -144,28 +127,22 @@ Thank you for your interest in ReLeather.
 
 We’d be happy to look into {service_type} for your {item_type}. To provide accurate recommendations and pricing, please send us a few photos, any additional details, and if possible dimensions. We’ll follow up shortly.
 """
-
             email_body = email_body.replace("\n", "<br/>") + "<br/><br/>" + OUTLOOK_EMAIL_SIGNATURE
 
-            access_token = get_access_token(
-                AZURE_TENANT_ID,
-                AZURE_CLIENT_ID,
-                AZURE_CLIENT_SECRET
-            )
-
-            if access_token:
+            token = get_access_token(AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET)
+            if token:
                 create_outlook_draft(
-                    access_token,
+                    token,
                     OUTLOOK_SENDER_EMAIL,
                     customer_email,
                     f"{service_type} – ReLeather",
-                    email_body
+                    email_body,
                 )
 
             return jsonify({"status": "awaiting_photos"}), 200
 
         # ==================================================
-        # ✅ PHOTOS PRESENT → FULL EMAIL
+        # PHOTOS PRESENT → FULL EMAIL
         # ==================================================
         email_body = f"""Hi {greeting_name},
 
@@ -178,25 +155,9 @@ Based on the information provided, we recommend our {service_type} for your {ite
             email_body += """
 This service addresses surface wear such as color fading, light scratches, scuffs, stains, and spotting. It also restores the leather’s original uniform color and matte finish.
 """
-
-        elif service_type == "Leather Cleaning & Conditioning":
-            email_body += """
-Leather Cleaning removes surface dirt and build up, deep cleans the leather surface. Leather Conditioning moisturizes and protects the leather.
-"""
-
         elif service_type == "Leather Dyeing (Color Change)":
             email_body += f"""
 This service treats the old finish and dyes the leather in your selected color — {color_selection}. We complete the process with a protective topcoat.
-"""
-
-        elif service_type == "Leather Reupholstery":
-            email_body += """
-Full Leather Reupholstery replaces all upholstery with new leather of your choice.
-"""
-
-        elif service_type == "Foam Replacement & Restuffing":
-            email_body += """
-This service replaces the seat cushion core with high-resilience foam.
 """
 
         email_body += """
@@ -210,34 +171,3 @@ Please contact us with any questions or to proceed.
 """
 
         email_body = email_body.replace("\n", "<br/>") + "<br/><br/>" + OUTLOOK_EMAIL_SIGNATURE
-
-        access_token = get_access_token(
-            AZURE_TENANT_ID,
-            AZURE_CLIENT_ID,
-            AZURE_CLIENT_SECRET
-        )
-
-        if access_token:
-            create_outlook_draft(
-                access_token,
-                OUTLOOK_SENDER_EMAIL,
-                customer_email,
-                f"{service_type} – ReLeather",
-                email_body
-            )
-
-        return jsonify({"status": "processed"}), 200
-
-    except Exception as e:
-        logging.error(str(e))
-        return jsonify({"error": "internal error"}), 500
-
-
-# ---- HEALTH CHECK ----
-@app.route("/", methods=["GET"])
-def index():
-    return "Webhook server is running."
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
