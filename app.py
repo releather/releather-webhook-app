@@ -16,9 +16,12 @@ AZURE_CLIENT_SECRET = os.environ.get("AZURE_CLIENT_SECRET")
 OUTLOOK_SENDER_EMAIL = os.environ.get("OUTLOOK_SENDER_EMAIL")
 OUTLOOK_EMAIL_SIGNATURE = os.environ.get("OUTLOOK_EMAIL_SIGNATURE", "")
 
-# ---- REQUIRED IMPORTS (must already exist in your project) ----
-from outlook import get_access_token, create_outlook_draft
+# ---- TEMP SAFE STUBS ----
+def get_access_token(*args, **kwargs):
+    return None
 
+def create_outlook_draft(*args, **kwargs):
+    return True
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
