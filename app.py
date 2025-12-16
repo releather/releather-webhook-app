@@ -153,6 +153,7 @@ We’d be happy to look into {service_type} for your {item_type}. To provide acc
         # ==================================================
         # PHOTOS PRESENT → FULL EMAIL
         # ==================================================
+        # ---- INTRO BLOCK ----
         email_body = f"""Hi {greeting_name},
 
 Thank you for your interest in ReLeather.
@@ -160,15 +161,41 @@ Thank you for your interest in ReLeather.
 Based on the information provided, we recommend our {service_type} for your {item_type}.
 """
 
+        # ---- CONDITIONAL SERVICE BODY ----
         if service_type == "Leather Restoration":
             email_body += """
-This service addresses surface wear such as color fading, light scratches, scuffs, stains, and spotting. It also restores the leather’s original uniform color and matte finish.
-"""
-        elif service_type == "Leather Dyeing (Color Change)":
-            email_body += f"""
-This service treats the old finish and dyes the leather in your selected color — {color_selection}. We complete the process with a protective topcoat.
+This service addresses surface wear such as color fading, light scratches, scuffs, stains, and spotting. It also restores the leather’s original uniform color and matte finish. We complete the process with a protective coating to prevent color transfer.
+
+Please note: We cannot repair or restore the grain texture in areas where it has been worn smooth or torn. We can perform minor patching for tears if needed. However, the cosmetic result varies depending on the damage.
 """
 
+        elif service_type == "Leather Cleaning & Conditioning":
+            email_body += """
+Leather Cleaning removes surface dirt and build up, deep cleans the leather surface. Leather Conditioning moisturizes, softens, strengthens, polishes the leather, and prevents water spotting and cracking. Leather Retouching treats minor scuffs and discoloration, and renews color finish. Leather Protection applies a finish protection.
+"""
+
+        elif service_type == "Leather Dyeing (Color Change)":
+            email_body += f"""
+This service treats the old finish and dyes the leather in your selected color — {color_selection}. It also refreshes the overall finish of the item, enhancing both appearance and longevity. We complete the process with a protective topcoat to prevent color transfer.
+
+Please note: The new surface coating applied during dyeing may reduce the suppleness of the leather. Accent stitching will be dyed to match the new leather color. While we carefully mask fabric strips and linings during restoration, some dye transfer may occur. We take precautions to minimize this.
+"""
+
+        elif service_type == "Leather Reupholstery":
+            email_body += """
+Full Leather Reupholstery replaces all upholstery with new leather of your choice. We offer a wide selection of colors, textures, and finishes. This requires purchasing new leather and disassembly of the upholstery.
+
+Partial Leather Reupholstery service recovers damaged leather for specific cushions. This also requires purchasing new leather and upholstery disassembly.
+
+Please note: We source leather that closely matches your original; however, the worn-in patina of existing leather may not match seamlessly. For accurate measurements and pattern matching, we require the original seat cover for each unique cushion size mailed to us.
+"""
+
+        elif service_type == "Foam Replacement & Restuffing":
+            email_body += """
+This service replaces the seat cushion core with high-resilience (HR) grade foam and adds polyester fiber padding for improved structure and comfort.
+"""
+
+        # ---- ENDING BLOCK ----
         email_body += """
 Estimated cost: $.
 
@@ -176,7 +203,11 @@ Completion time: 1–2 weeks.
 
 Drop-off: By appointment at our Fullerton, CA shop.
 
-Please contact us with any questions or to proceed.
+Free Pick Up and Delivery in Orange County.
+
+$200 Pick Up and Delivery in Los Angeles, San Diego, and Riverside County.
+
+Please contact us with any questions or to proceed with your order. Thank you.
 """
 
         email_body = (
