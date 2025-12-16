@@ -85,15 +85,19 @@ def webhook():
                     return q.get("value", "")
             return ""
 
+        def normalize_value(value):
+            if isinstance(value, list):
+                return ", ".join(value)
+            return value
+
         service_type = get_value("What leather service are you interested in?")
-        item_type = get_value("What type of leather item?")
-        color_selection = get_value("Color Selection")
+        item_type = normalize_value(get_value("What type of leather item?"))
+        color_selection = normalize_value(get_value("Color Selection"))
         customer_email = get_value("Email")
 
         if not customer_email or not service_type:
             logging.warning("Missing email or service type")
             return jsonify({"status": "ignored"}), 200
-
 
         # ---- INTRO BLOCK ----
         email_body = f"""Hi,
