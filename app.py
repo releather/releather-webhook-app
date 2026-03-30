@@ -158,7 +158,7 @@ We’d be happy to look into {service_type} for your {item_type}. To provide acc
 
 Thank you for your interest in ReLeather.
 
-Based on the information provided, we recommend our {service_type} for your {item_type}.
+Based on the information, we recommend our {service_type} for your {item_type}.
 """
 
         # ---- CONDITIONAL SERVICE BODY ----
@@ -166,12 +166,16 @@ Based on the information provided, we recommend our {service_type} for your {ite
             email_body += """
 This service addresses surface wear such as color fading, light scratches, scuffs, stains, and spotting. It also restores the leather’s original uniform color and matte finish. We complete the process with a protective coating to prevent color transfer.
 
-Please note: We cannot repair or restore the grain texture in areas where it has been worn smooth or torn. We can perform minor patching for tears if needed. However, the cosmetic result varies depending on the damage.
+Service details:
+https://www.releather.com/services#leather-restoration
 """
 
         elif service_type == "Leather Cleaning & Conditioning":
             email_body += """
 Leather Cleaning removes surface dirt and build up, deep cleans the leather surface. Leather Conditioning moisturizes, softens, strengthens, polishes the leather, and prevents water spotting and cracking. Leather Retouching treats minor scuffs and discoloration, and renews color finish. Leather Protection applies a finish protection.
+
+Service details:
+https://www.releather.com/services#leather-cleaning
 """
 
         elif service_type == "Leather Dyeing (Color Change)":
@@ -179,65 +183,53 @@ Leather Cleaning removes surface dirt and build up, deep cleans the leather surf
 This service treats the old finish and dyes the leather in your selected color — {color_selection}. It also refreshes the overall finish of the item, enhancing both appearance and longevity. We complete the process with a protective topcoat to prevent color transfer.
 
 Please note: The new surface coating applied during dyeing may reduce the suppleness of the leather. Accent stitching will be dyed to match the new leather color. While we carefully mask fabric strips and linings during restoration, some dye transfer may occur. We take precautions to minimize this.
+
+Service details:
+https://www.releather.com/services#leather-dyeing
 """
 
         elif service_type == "Leather Reupholstery":
             email_body += """
-Full Leather Reupholstery replaces all upholstery with new leather of your choice. We offer a wide selection of colors, textures, and finishes. This requires purchasing new leather and disassembly of the upholstery.
+Full Leather Reupholstery replaces all upholstery with new leather of your choice. We offer various colors, textures, and finishes. Purchasing leather hides and upholstery disassembly are required.
 
-Partial Leather Reupholstery service recovers damaged leather for specific cushions. This also requires purchasing new leather and upholstery disassembly.
+Partial Leather Reupholstery recovers only damaged upholstery with new matching leather. Existing wear and patina may affect an exact match. Purchasing leather hides and upholstery disassembly are required.
 
-Please note: We source leather that closely matches your original; however, the worn-in patina of existing leather may not match seamlessly. For accurate measurements and pattern matching, we require the original seat cover for each unique cushion size mailed to us.
+Service details:
+https://www.releather.com/services#leather-upholstery
 
 Reference Pricing:
-• Standard Sofa Seat Cushion: $1100 each
-Reference dimensions:
-- Thickness: 4" to 6"
-- Width: 22" to 26"
-- Depth: 20" to 24"
+• Regular seat cushion (Thickness: 4-6 in. | Width: 22-26 in. | Depth: 20-24 in.): $900–$1100 each
+• Larger seat cushion (Thickness: 5-8 in. | Width: 26-32 in. | Depth: 24-34 in.): $1100+ each
+• Oversized / Chaise cushion (Thickness: 6-8 in. | Width: 32-40 in. | Depth: 60-72 in.): $1800+ each
 
-• Larger Seat Cushions (oversized/deep-seat sofas): $1200+ each
-Reference dimensions:
-- Thickness: 5" to 8"
-- Width: 26" to 32"
-- Depth: 24" to 34"
-
-Foam core not included.  Additional labor cost for fixed seating.
+• May require the original seat cover for each uniquely shaped cushion to ensure accurate sizing and pattern matching. • Foam core not included. • Additional labor cost for fixed seating.
 """
 
         elif service_type == "Foam Replacement & Restuffing":
             email_body += """
-This service replaces the seat cushion core with high-resilience (HR) grade foam and adds polyester fiber padding for a fuller, more structured look. We offer HR foam in soft, medium, and firm densities to suit your comfort preference.
+This service refills the cushion core with high-resilience (HR) grade foam and adds polyester fiber padding for a fuller, structured look. Available in soft, medium, and firm densities to suit comfort preference.
 
-Please note: We do not use down feather filling. To ensure accurate measurements and pattern matching, we may require the original seat cover for each unique cushion size mailed to us.
+Service details:
+https://www.releather.com/services#foamrestuff
 
 Reference Pricing:
-• Standard Sofa Seat Cushion: $350–$450 each
-Reference dimensions:
-- Thickness: 4" to 6"
-- Width: 22" to 26"
-- Depth: 20" to 24"
+• Regular seat cushion (Thickness: 4-6 in. | Width: 22-26 in. | Depth: 20-24 in.): $350–$450 each
+• Larger seat cushion (Thickness: 5-8 in. | Width: 26-32 in. | Depth: 24-34 in.): $450–$600 each
 
-• Larger Seat Cushions (oversized/deep-seat sofas): $450–$600 each
-Reference dimensions:
-- Thickness: 5" to 8"
-- Width: 26" to 32"
-- Depth: 24" to 34"
+• May require the original seat cover for each uniquely shaped cushion to ensure accurate sizing and pattern matching. • We do not use down feather filling.
 """
 
         # ---- ENDING BLOCK ----
         email_body += """
 Estimated cost: $.
 
-Completion time: 1–2 weeks.
+Completion time: 2-4 weeks.
 
-Drop-off: By appointment at our Fullerton, CA shop.
+Drop-off Address: 751 S State College Unit 38, Fullerton, CA 92831.
 
-Free Pick Up and Delivery in Orange County.
+Pick up & Delivery: Orange County: $100 fee. Los Angeles, San Diego, Riverside: $200 fee.
 
-$200 Pick Up and Delivery in Los Angeles, San Diego, and Riverside County.
-
-Non-local customers: Shipping instructions for mailed-in orders will be provided after confirming your order. Return shipping is quoted separately. 
+Out-of-Area orders: Shipping instructions provided after order confirmation. Return shipping quoted separately.
 
 Please contact us with any questions or to proceed with your order. Thank you.
 """
