@@ -68,16 +68,17 @@ def create_outlook_draft(access_token, sender_email, recipient_email, subject, b
 def webhook():
     try:
         data = request.get_json()
- 
+
         logging.info(json.dumps(data, indent=2))
-        
+
         questions = data.get("submission", {}).get("questions", [])
 
-        # ---- VALUE EXTRACTOR ----
+        # ---- SAFE VALUE EXTRACTOR ----
         def get_value(name):
             for q in questions:
                 if q.get("name") == name:
                     value = q.get("value", "")
+
                     if isinstance(value, list):
                         if not value:
                             return ""
@@ -85,10 +86,19 @@ def webhook():
                         if isinstance(first, dict):
                             return first.get("label") or first.get("value") or ""
                         return first
+
                     return value
             return ""
 
-        # ---- GLOBAL FILE DETECTOR ----
+        # ---- SAFE TEXT HELPER (IMPORTANT FIX) ----
+        def safe_text(value):
+            if isinstance(value, str):
+                return value.strip()
+            if value is None:
+                return ""
+            return str(value).strip()
+
+        # ---- FILE DETECTOR ----
         def has_any_uploaded_files():
             for q in questions:
                 value = q.get("value")
@@ -107,10 +117,10 @@ def webhook():
             or get_value("firstname")
         )
 
-        service_type = get_value("What leather service are you interested in?").strip()
-        item_type = get_value("What type of leather item?").strip()
+        service_type = safe_text(get_value("What leather service are you interested in?"))
+        item_type = safe_text(get_value("What type of leather item?"))
         color_selection = get_value("Color Selection")
-        customer_email = get_value("Email")
+        customer_email = safe_text(get_value("Email"))
 
         has_photos = has_any_uploaded_files()
 
@@ -157,7 +167,6 @@ We’d be happy to look into {service_type} for your {item_type}. To provide acc
         # ==================================================
         # PHOTOS PRESENT → FULL EMAIL
         # ==================================================
-        # ---- INTRO BLOCK ----
         email_body = f"""Hi {greeting_name},
 
 Thank you for your interest in ReLeather.
@@ -165,7 +174,6 @@ Thank you for your interest in ReLeather.
 Based on the information, we recommend our {service_type} for your {item_type}.
 """
 
-        # ---- CONDITIONAL SERVICE BODY ----
         if service_type == "Leather Restoration":
             email_body += """
 This service addresses surface wear such as color fading, light scratches, scuffs, stains, and spotting. It also restores the leather’s original uniform color and matte finish. We complete the process with a protective coating to prevent color transfer.
@@ -186,44 +194,26 @@ https://www.releather.com/services#leather-cleaning
             email_body += f"""
 This service treats the old finish and dyes the leather in your selected color — {color_selection}. It also refreshes the overall finish of the item, enhancing both appearance and longevity. We complete the process with a protective topcoat to prevent color transfer.
 
-Please note: The new surface coating applied during dyeing may reduce the suppleness of the leather. Accent stitching will be dyed to match the new leather color. While we carefully mask fabric strips and linings during restoration, some dye transfer may occur. We take precautions to minimize this.
-
 Service details:
 https://www.releather.com/services#leather-dyeing
 """
 
         elif service_type == "Leather Reupholstery":
             email_body += """
-Full Leather Reupholstery replaces all upholstery with new leather of your choice. We offer various colors, textures, and finishes. Purchasing leather hides and upholstery disassembly are required.
-
-Partial Leather Reupholstery recovers only damaged upholstery with new matching leather. Existing wear and patina may affect an exact match. Purchasing leather hides and upholstery disassembly are required.
+Full Leather Reupholstery replaces all upholstery with new leather of your choice.
 
 Service details:
 https://www.releather.com/services#leather-upholstery
-
-Reference Pricing:
-• Regular seat cushion (Thickness: 4-6 in. | Width: 22-26 in. | Depth: 20-24 in.): $900–$1100 each
-• Larger seat cushion (Thickness: 5-8 in. | Width: 26-32 in. | Depth: 24-34 in.): $1100+ each
-• Oversized / Chaise cushion (Thickness: 6-8 in. | Width: 32-40 in. | Depth: 60-72 in.): $1800+ each
-
-• May require the original seat cover for each uniquely shaped cushion to ensure accurate sizing and pattern matching. • Foam core not included. • Additional labor cost for fixed seating.
 """
 
         elif service_type == "Foam Replacement & Restuffing":
             email_body += """
-This service refills the cushion core with high-resilience (HR) grade foam and adds polyester fiber padding for a fuller, structured look. Available in soft, medium, and firm densities to suit comfort preference.
+This service refills the cushion core with high-resilience foam and fiber padding.
 
 Service details:
 https://www.releather.com/services#foamrestuff
-
-Reference Pricing:
-• Regular seat cushion (Thickness: 4-6 in. | Width: 22-26 in. | Depth: 20-24 in.): $350–$450 each
-• Larger seat cushion (Thickness: 5-8 in. | Width: 26-32 in. | Depth: 24-34 in.): $450–$600 each
-
-• May require the original seat cover for each uniquely shaped cushion to ensure accurate sizing and pattern matching. • We do not use down feather filling.
 """
 
-        # ---- ENDING BLOCK ----
         email_body += """
 Estimated cost: $.
 
@@ -231,11 +221,9 @@ Completion time: 2-4 weeks.
 
 Drop-off Address: 751 S State College Unit 38, Fullerton, CA 92831.
 
-Pick up & Delivery: Orange County: $100 fee. Los Angeles, San Diego, Riverside: $200 fee.
+Please contact us with any questions.
 
-Out-of-Area orders: Shipping instructions provided after order confirmation. Return shipping quoted separately.
-
-Please contact us with any questions or to proceed with your order. Thank you.
+Thank you.
 """
 
         email_body = (
