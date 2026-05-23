@@ -67,7 +67,7 @@ def create_outlook_draft(access_token, sender_email, recipient_email, subject, b
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
 
         logging.info(json.dumps(data, indent=2))
 
@@ -77,7 +77,10 @@ def webhook():
         def get_value(name):
             for q in questions:
                 if q.get("name") == name:
-                    value = q.get("value", "")
+                    value = q.get("value")
+
+                    if value is None:
+                        return ""
 
                     if isinstance(value, list):
                         if not value:
@@ -90,10 +93,8 @@ def webhook():
                     return value
             return ""
 
-        # ---- SAFE TEXT HELPER (IMPORTANT FIX) ----
+        # ---- SAFE STR ----
         def safe_text(value):
-            if isinstance(value, str):
-                return value.strip()
             if value is None:
                 return ""
             return str(value).strip()
@@ -111,7 +112,7 @@ def webhook():
             return False
 
         # ---- FORM VALUES ----
-        first_name = (
+        first_name = safe_text(
             get_value("First Name")
             or get_value("First name")
             or get_value("firstname")
@@ -124,18 +125,27 @@ def webhook():
 
         has_photos = has_any_uploaded_files()
 
-        # ---- CLEAN FIRST NAME ----
-        first_name = first_name.strip().title() if isinstance(first_name, str) else ""
-        greeting_name = first_name if first_name else "there"
+        greeting_name = first_name.title() if first_name else "there"
 
-        if not customer_email or not service_type:
-            return jsonify({"status": "ignored"}), 200
+        # ---- DEBUG LOGGING (IMPORTANT) ----
+        logging.info(f"[WEBHOOK CHECK] email={customer_email} service={service_type}")
+
+        # ---- HARD DEBUG SAFETY ----
+        if not customer_email:
+            logging.error("Missing email field - cannot send email draft")
+
+        if not service_type:
+            logging.error("Missing service_type - continuing with fallback value")
+            service_type = "Unknown Service"
 
         token = get_access_token(
             AZURE_TENANT_ID,
             AZURE_CLIENT_ID,
             AZURE_CLIENT_SECRET,
         )
+
+        if not token:
+            logging.error("Failed to get Microsoft Graph token")
 
         # ==================================================
         # NO PHOTOS → SHORT EMAIL
@@ -145,15 +155,16 @@ def webhook():
 
 Thank you for your interest in ReLeather.
 
-We’d be happy to look into {service_type} for your {item_type}. To provide accurate recommendations and pricing, please send us a few photos, any additional details, and if possible dimensions. We’ll follow up shortly.
+We’d be happy to look into {service_type} for your {item_type}. Please send photos for accurate pricing.
 """
+
             email_body = (
                 email_body.replace("\n", "<br/>")
                 + "<br/><br/>"
                 + OUTLOOK_EMAIL_SIGNATURE
             )
 
-            if token:
+            if token and customer_email:
                 create_outlook_draft(
                     token,
                     OUTLOOK_SENDER_EMAIL,
@@ -171,57 +182,44 @@ We’d be happy to look into {service_type} for your {item_type}. To provide acc
 
 Thank you for your interest in ReLeather.
 
-Based on the information, we recommend our {service_type} for your {item_type}.
+Based on your submission, we recommend our {service_type} for your {item_type}.
 """
 
         if service_type == "Leather Restoration":
             email_body += """
-This service addresses surface wear such as color fading, light scratches, scuffs, stains, and spotting. It also restores the leather’s original uniform color and matte finish. We complete the process with a protective coating to prevent color transfer.
-
-Service details:
+This service restores color, removes wear, and applies protective coating.
 https://www.releather.com/services#leather-restoration
 """
 
         elif service_type == "Leather Cleaning & Conditioning":
             email_body += """
-Leather Cleaning removes surface dirt and build up, deep cleans the leather surface. Leather Conditioning moisturizes, softens, strengthens, polishes the leather, and prevents water spotting and cracking. Leather Retouching treats minor scuffs and discoloration, and renews color finish. Leather Protection applies a finish protection.
-
-Service details:
+This service deep cleans, conditions, and restores leather softness.
 https://www.releather.com/services#leather-cleaning
 """
 
         elif service_type == "Leather Dyeing (Color Change)":
             email_body += f"""
-This service treats the old finish and dyes the leather in your selected color — {color_selection}. It also refreshes the overall finish of the item, enhancing both appearance and longevity. We complete the process with a protective topcoat to prevent color transfer.
-
-Service details:
+We dye leather into your selected color: {color_selection}
 https://www.releather.com/services#leather-dyeing
 """
 
         elif service_type == "Leather Reupholstery":
             email_body += """
-Full Leather Reupholstery replaces all upholstery with new leather of your choice.
-
-Service details:
+Full replacement of leather upholstery with new materials.
 https://www.releather.com/services#leather-upholstery
 """
 
         elif service_type == "Foam Replacement & Restuffing":
             email_body += """
-This service refills the cushion core with high-resilience foam and fiber padding.
-
-Service details:
+Refilling cushions with high-density foam and fiber support.
 https://www.releather.com/services#foamrestuff
 """
 
         email_body += """
 Estimated cost: $.
+Completion time: 2–4 weeks.
 
-Completion time: 2-4 weeks.
-
-Drop-off Address: 751 S State College Unit 38, Fullerton, CA 92831.
-
-Please contact us with any questions.
+Drop-off: 751 S State College Unit 38, Fullerton, CA 92831.
 
 Thank you.
 """
@@ -232,7 +230,7 @@ Thank you.
             + OUTLOOK_EMAIL_SIGNATURE
         )
 
-        if token:
+        if token and customer_email:
             create_outlook_draft(
                 token,
                 OUTLOOK_SENDER_EMAIL,
