@@ -67,6 +67,9 @@ def create_outlook_draft(access_token, sender_email, recipient_email, subject, b
 def webhook():
     try:
         data = request.get_json()
+ 
+        logging.info(json.dumps(data, indent=2))
+        
         questions = data.get("submission", {}).get("questions", [])
 
         # ---- VALUE EXTRACTOR ----
