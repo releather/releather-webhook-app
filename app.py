@@ -67,21 +67,17 @@ def create_outlook_draft(access_token, sender_email, recipient_email, subject, b
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
-        data = request.get_json() or {}
-
+        data = request.get_json()
+ 
         logging.info(json.dumps(data, indent=2))
-
+        
         questions = data.get("submission", {}).get("questions", [])
 
-        # ---- SAFE VALUE EXTRACTOR ----
+        # ---- VALUE EXTRACTOR ----
         def get_value(name):
             for q in questions:
                 if q.get("name") == name:
-                    value = q.get("value")
-
-                    if value is None:
-                        return ""
-
+                    value = q.get("value", "")
                     if isinstance(value, list):
                         if not value:
                             return ""
@@ -89,17 +85,10 @@ def webhook():
                         if isinstance(first, dict):
                             return first.get("label") or first.get("value") or ""
                         return first
-
                     return value
             return ""
 
-        # ---- SAFE STR ----
-        def safe_text(value):
-            if value is None:
-                return ""
-            return str(value).strip()
-
-        # ---- FILE DETECTOR ----
+        # ---- GLOBAL FILE DETECTOR ----
         def has_any_uploaded_files():
             for q in questions:
                 value = q.get("value")
@@ -112,40 +101,31 @@ def webhook():
             return False
 
         # ---- FORM VALUES ----
-        first_name = safe_text(
+        first_name = (
             get_value("First Name")
             or get_value("First name")
             or get_value("firstname")
         )
 
-        service_type = safe_text(get_value("What leather service are you interested in?"))
-        item_type = safe_text(get_value("What type of leather item?"))
+        service_type = get_value("What leather service are you interested in?").strip()
+        item_type = get_value("What type of leather item?").strip()
         color_selection = get_value("Color Selection")
-        customer_email = safe_text(get_value("Email"))
+        customer_email = get_value("Email")
 
         has_photos = has_any_uploaded_files()
 
-        greeting_name = first_name.title() if first_name else "there"
+        # ---- CLEAN FIRST NAME ----
+        first_name = first_name.strip().title() if isinstance(first_name, str) else ""
+        greeting_name = first_name if first_name else "there"
 
-        # ---- DEBUG LOGGING (IMPORTANT) ----
-        logging.info(f"[WEBHOOK CHECK] email={customer_email} service={service_type}")
-
-        # ---- HARD DEBUG SAFETY ----
-        if not customer_email:
-            logging.error("Missing email field - cannot send email draft")
-
-        if not service_type:
-            logging.error("Missing service_type - continuing with fallback value")
-            service_type = "Unknown Service"
+        if not customer_email or not service_type:
+            return jsonify({"status": "ignored"}), 200
 
         token = get_access_token(
             AZURE_TENANT_ID,
             AZURE_CLIENT_ID,
             AZURE_CLIENT_SECRET,
         )
-
-        if not token:
-            logging.error("Failed to get Microsoft Graph token")
 
         # ==================================================
         # NO PHOTOS → SHORT EMAIL
@@ -155,16 +135,15 @@ def webhook():
 
 Thank you for your interest in ReLeather.
 
-We’d be happy to look into {service_type} for your {item_type}. Please send photos for accurate pricing.
+We’d be happy to look into {service_type} for your {item_type}. To provide accurate recommendations and pricing, please send us a few photos, any additional details.
 """
-
             email_body = (
                 email_body.replace("\n", "<br/>")
                 + "<br/><br/>"
                 + OUTLOOK_EMAIL_SIGNATURE
             )
 
-            if token and customer_email:
+            if token:
                 create_outlook_draft(
                     token,
                     OUTLOOK_SENDER_EMAIL,
@@ -178,50 +157,85 @@ We’d be happy to look into {service_type} for your {item_type}. Please send ph
         # ==================================================
         # PHOTOS PRESENT → FULL EMAIL
         # ==================================================
+        # ---- INTRO BLOCK ----
         email_body = f"""Hi {greeting_name},
 
 Thank you for your interest in ReLeather.
 
-Based on your submission, we recommend our {service_type} for your {item_type}.
+Based on the information, we recommend our {service_type} for your {item_type}.
 """
 
+        # ---- CONDITIONAL SERVICE BODY ----
         if service_type == "Leather Restoration":
             email_body += """
-This service restores color, removes wear, and applies protective coating.
+This service addresses surface wear such as color fading, light scratches, scuffs, stains, and spotting. It also restores the leather’s original uniform color and matte finish. We complete the process with a protective coating to prevent color transfer.
+
+Service details:
 https://www.releather.com/services#leather-restoration
 """
 
         elif service_type == "Leather Cleaning & Conditioning":
             email_body += """
-This service deep cleans, conditions, and restores leather softness.
+Leather Cleaning removes surface dirt and build up, deep cleans the leather surface. Leather Conditioning moisturizes, softens, strengthens, polishes the leather, and prevents water spotting and cracking. Leather Retouching treats minor scuffs and discoloration, and renews color finish. Leather Protection applies a finish protection.
+
+Service details:
 https://www.releather.com/services#leather-cleaning
 """
 
         elif service_type == "Leather Dyeing (Color Change)":
             email_body += f"""
-We dye leather into your selected color: {color_selection}
+This service treats the old finish and dyes the leather in your selected color — {color_selection}. It also refreshes the overall finish of the item, enhancing both appearance and longevity. We complete the process with a protective topcoat to prevent color transfer.
+
+Please note: The new surface coating applied during dyeing may reduce the suppleness of the leather. Accent stitching will be dyed to match the new leather color. While we carefully mask fabric strips and linings during restoration, some dye transfer may occur. We take precautions to minimize this.
+
+Service details:
 https://www.releather.com/services#leather-dyeing
 """
 
         elif service_type == "Leather Reupholstery":
             email_body += """
-Full replacement of leather upholstery with new materials.
+Full Leather Reupholstery replaces all upholstery with new leather of your choice. We offer various colors, textures, and finishes. Purchasing leather hides and upholstery disassembly are required.
+
+Partial Leather Reupholstery recovers only damaged upholstery with new matching leather. Existing wear and patina may affect an exact match. Purchasing leather hides and upholstery disassembly are required.
+
+Service details:
 https://www.releather.com/services#leather-upholstery
+
+Reference Pricing:
+• Regular seat cushion (Thickness: 4-6 in. | Width: 22-26 in. | Depth: 20-24 in.): $900–$1100 each
+• Larger seat cushion (Thickness: 5-8 in. | Width: 26-32 in. | Depth: 24-34 in.): $1100+ each
+• Oversized / Chaise cushion (Thickness: 6-8 in. | Width: 32-40 in. | Depth: 60-72 in.): $1800+ each
+
+• May require the original seat cover for each uniquely shaped cushion to ensure accurate sizing and pattern matching. • Foam core not included. • Additional labor cost for fixed seating.
 """
 
         elif service_type == "Foam Replacement & Restuffing":
             email_body += """
-Refilling cushions with high-density foam and fiber support.
+This service refills the cushion core with high-resilience (HR) grade foam and adds polyester fiber padding for a fuller, structured look. Available in soft, medium, and firm densities to suit comfort preference.
+
+Service details:
 https://www.releather.com/services#foamrestuff
+
+Reference Pricing:
+• Regular seat cushion (Thickness: 4-6 in. | Width: 22-26 in. | Depth: 20-24 in.): $350–$450 each
+• Larger seat cushion (Thickness: 5-8 in. | Width: 26-32 in. | Depth: 24-34 in.): $450–$600 each
+
+• May require the original seat cover for each uniquely shaped cushion to ensure accurate sizing and pattern matching. • We do not use down feather filling.
 """
 
+        # ---- ENDING BLOCK ----
         email_body += """
 Estimated cost: $.
-Completion time: 2–4 weeks.
 
-Drop-off: 751 S State College Unit 38, Fullerton, CA 92831.
+Completion time: 2-4 weeks.
 
-Thank you.
+Drop-off Address: 751 S State College Unit 38, Fullerton, CA 92831.
+
+Pick up & Delivery: Orange County: $100 fee. Los Angeles, San Diego, Riverside: $200 fee.
+
+Out-of-Area orders: Shipping instructions provided after order confirmation. Return shipping quoted separately.
+
+Please contact us with any questions or to proceed with your order. Thank you.
 """
 
         email_body = (
@@ -230,7 +244,7 @@ Thank you.
             + OUTLOOK_EMAIL_SIGNATURE
         )
 
-        if token and customer_email:
+        if token:
             create_outlook_draft(
                 token,
                 OUTLOOK_SENDER_EMAIL,
